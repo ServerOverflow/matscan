@@ -29,7 +29,6 @@ Also, if you do intend on using any of the code here, please read the [license](
 ## Usage
 It is assumed that you know the basics of server scanning. Otherwise, I recommend reading the [masscan readme](https://github.com/robertdavidgraham/masscan/blob/master/README.md) and [documentation](https://github.com/robertdavidgraham/masscan/blob/master/doc/masscan.8.markdown).
 Also be aware that matscan only supports Linux, but you probably shouldn't be running it at home anyway.
-You can use the compiled binary without the rest of the code once compiled as long as you put the `config.toml` in the working directory.
 
 1) Rename `example-config.toml` to `config.toml` and refer to [config.rs](https://github.com/TheAirBlow/matscan/blob/master/src/config.rs) for the format.
 2) Create a MongoDB database with all necessary collections and indexes:
