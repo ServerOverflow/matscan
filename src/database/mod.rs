@@ -6,7 +6,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-
+use std::str::FromStr;
 use bson::{Bson, Document};
 use futures_util::{stream::StreamExt, TryStreamExt};
 use lru_cache::LruCache;
@@ -61,8 +61,8 @@ impl Database {
             .await
             .expect("bad servers collection must exist");
         while let Some(Ok(doc)) = cursor.next().await {
-            if let Some(addr) = get_u32(&doc, "addr") {
-                bad_ips.insert(Ipv4Addr::from(addr));
+            if let Some(Bson::String(ip)) = doc.get("ip") {
+                bad_ips.insert(Ipv4Addr::from_str(String::from(ip.as_str().unwrap())));
             }
         }
 
@@ -200,7 +200,7 @@ impl Database {
             .database("matscan")
             .collection::<Document>("bad_servers")
             .update_one(
-                doc! { "addr": u32::from(addr) },
+                doc! { "ip": addr.to_string() },
                 doc! {
                     "$set": {
                         "timestamp": Bson::DateTime(bson::DateTime::from_system_time(SystemTime::now())),
@@ -217,7 +217,7 @@ impl Database {
             .database("matscan")
             .collection::<Document>("servers")
             .delete_many(doc! {
-                "addr": u32::from(addr),
+                "ip": addr.to_string(),
                 "port": { "$ne": 25565 }
             })
             .await?;
@@ -327,21 +327,21 @@ pub async fn collect_all_servers(
     let mut cursor = database
         .servers_coll()
         .find(doc_filter)
-        .projection(doc! {"addr": 1, "port": 1, "_id": 0})
+        .projection(doc! {"ip": 1, "port": 1, "_id": 0})
         .batch_size(2000)
-        .hint(Hint::Keys(doc! {"addr": 1, "port": 1}))
+        .hint(Hint::Keys(doc! {"ip": 1, "port": 1}))
         .await?;
 
     let mut servers = Vec::new();
 
     while let Some(doc) = cursor.try_next().await? {
-        let Some(addr) = get_u32(&doc, "addr") else {
+        let Some(Bson::String(ip)) = doc.get("ip") else {
             continue;
         };
         let Some(port) = get_u32(&doc, "port") else {
             continue;
         };
-        servers.push(SocketAddrV4::new(Ipv4Addr::from(addr), port as u16));
+        servers.push(SocketAddrV4::new(Ipv4Addr::from_str(String::from(ip.as_str().unwrap())), port as u16));
 
         if servers.len() % 10000 == 0 {
             println!("Collected {} servers", servers.len());

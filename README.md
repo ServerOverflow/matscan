@@ -38,7 +38,7 @@ use matscan
 db.createCollection("servers")
 db.createCollection("bad_servers")
 db.createCollection("exclusions")
-db.servers.createIndex({ addr: 1, port: 1 }, { unique: true })
+db.servers.createIndex({ ip: 1, port: 1 }, { unique: true })
 db.servers.createIndex({ timestamp: 1 })
 ```
 

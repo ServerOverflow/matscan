@@ -8,7 +8,7 @@ use std::{
     sync::Arc,
     time::{Duration, SystemTime},
 };
-
+use std::net::Ipv4Addr;
 use async_trait::async_trait;
 use bson::{doc, Bson};
 use parking_lot::Mutex;
@@ -72,7 +72,9 @@ where
             };
             // check if there's already a bulk update for this server
             let is_already_updating = bulk_updates.iter().any(|bulk_update| {
-                database::get_u32(&bulk_update.query, "addr") == Some(u32::from(*target.ip()))
+                bulk_update.query.get_str("ip").ok()
+                    .and_then(|ip_str| ip_str.parse::<Ipv4Addr>().ok())
+                    .map_or(false, |ip_addr| ip_addr == *target.ip())
                     && database::get_u32(&bulk_update.query, "port") == Some(target.port() as u32)
             });
             if is_already_updating {

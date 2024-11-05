@@ -88,7 +88,7 @@ impl ProcessableProtocol for protocols::MinecraftFingerprinting {
 
         Some(BulkUpdate {
             query: doc! {
-                "addr": { "$eq": u32::from(*target.ip()) },
+                "ip": { "$eq": target.ip().to_string() },
                 "port": { "$eq": target.port() as u32 }
             },
             update: doc! { "$set": mongo_update },

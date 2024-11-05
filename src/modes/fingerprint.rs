@@ -2,8 +2,8 @@ use std::{
     net::{Ipv4Addr, SocketAddrV4},
     time::{Duration, SystemTime},
 };
-
-use bson::{doc, Document};
+use std::str::FromStr;
+use bson::{doc, Bson, Document};
 use futures_util::StreamExt;
 
 use crate::database::{self, Database};
@@ -32,7 +32,7 @@ pub async fn get_addrs_and_protocol_versions(
     //println!("filter: {:?}", filter);
     let mut pipeline: Vec<Document> = vec![doc! { "$match": filter }];
     pipeline.push(
-        doc! { "$project": { "addr": 1, "port": 1, "minecraft.version.protocol": 1, "_id": 0 } },
+        doc! { "$project": { "ip": 1, "port": 1, "minecraft.version.protocol": 1, "_id": 0 } },
     );
     pipeline.push(doc! { "$sort": { "timestamp": 1 } });
 
@@ -44,7 +44,7 @@ pub async fn get_addrs_and_protocol_versions(
         .unwrap();
 
     while let Some(Ok(doc)) = cursor.next().await {
-        if let Some(addr) = database::get_u32(&doc, "addr") {
+        if let Some(Bson::String(ip)) = doc.get("ip") {
             if let Some(port) = database::get_u32(&doc, "port") {
                 let Ok(minecraft) = doc.get_document("minecraft") else {
                     continue;
@@ -54,7 +54,7 @@ pub async fn get_addrs_and_protocol_versions(
                 };
                 let protocol_version = version.get_i32("protocol").unwrap_or(47);
 
-                let addr = Ipv4Addr::from(addr);
+                let addr = Ipv4Addr::from_str(String::from(ip.as_str().unwrap()));
                 results.push((SocketAddrV4::new(addr, port as u16), protocol_version));
                 if results.len() % 1000 == 0 {
                     //println!("{} ips", results.len());

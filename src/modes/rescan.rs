@@ -2,8 +2,8 @@ use std::{
     net::Ipv4Addr,
     time::{Duration, SystemTime},
 };
-
-use bson::{doc, Document};
+use std::str::FromStr;
+use bson::{doc, Bson, Document};
 use futures_util::StreamExt;
 use serde::Deserialize;
 use tracing::warn;
@@ -57,7 +57,7 @@ pub async fn get_ranges(
 
     let mut pipeline: Vec<Document> = Vec::new();
     pipeline.push(doc! { "$match": filter });
-    pipeline.push(doc! { "$project": { "addr": 1, "port": 1, "_id": 0 } });
+    pipeline.push(doc! { "$project": { "ip": 1, "port": 1, "_id": 0 } });
 
     let sort = sort.unwrap_or(Sort::Oldest);
 
@@ -81,7 +81,7 @@ pub async fn get_ranges(
         .unwrap();
 
     while let Some(Ok(doc)) = cursor.next().await {
-        let Some(addr) = database::get_u32(&doc, "addr") else {
+        let Some(Bson::String(ip)) = doc.get("ip") else {
             warn!("couldn't get addr for doc: {doc:?}");
             continue;
         };
@@ -91,7 +91,7 @@ pub async fn get_ranges(
         };
 
         // there shouldn't be any bad ips...
-        let addr = Ipv4Addr::from(addr);
+        let addr = Ipv4Addr::from_str(String::from(ip.as_str().unwrap()));
         if bad_ips.contains(&addr) && port != 25565 {
             println!("Found {addr} in bad IPs when it shouldn't be, deleting it");
             database
@@ -99,7 +99,7 @@ pub async fn get_ranges(
                 .database("matscan")
                 .collection::<bson::Document>("servers")
                 .delete_many(doc! {
-                    "addr": u32::from(addr),
+                    "ip": addr.to_string(),
                     "port": { "$ne": 25565 }
                 })
                 .await?;

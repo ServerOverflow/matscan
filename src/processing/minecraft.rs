@@ -177,7 +177,7 @@ impl ProcessableProtocol for protocols::Minecraft {
                         let servers_coll = database.servers_coll();
                         let current_data = servers_coll
                             .find_one(doc! {
-                                "addr": u32::from(*target.ip()),
+                                "ip": target.ip().to_string(),
                                 "port": target.port() as u32
                             })
                             .await
@@ -479,7 +479,7 @@ pub fn create_bulk_update(
 
     Ok(BulkUpdate {
         query: doc! {
-            "addr": { "$eq": u32::from(*target.ip()) },
+            "ip": { "$eq": target.ip().to_string() },
             "port": { "$eq": target.port() as u32 }
         },
         update: mongo_update,
