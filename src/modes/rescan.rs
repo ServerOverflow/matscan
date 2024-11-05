@@ -91,7 +91,7 @@ pub async fn get_ranges(
         };
 
         // there shouldn't be any bad ips...
-        let addr = Ipv4Addr::from_str(String::from(ip.as_str().unwrap()));
+        let addr = Ipv4Addr::from_str(ip.as_str())?;
         if bad_ips.contains(&addr) && port != 25565 {
             println!("Found {addr} in bad IPs when it shouldn't be, deleting it");
             database

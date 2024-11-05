@@ -54,7 +54,7 @@ pub async fn get_addrs_and_protocol_versions(
                 };
                 let protocol_version = version.get_i32("protocol").unwrap_or(47);
 
-                let addr = Ipv4Addr::from_str(String::from(ip.as_str().unwrap()));
+                let addr = Ipv4Addr::from_str(ip.as_str())?;
                 results.push((SocketAddrV4::new(addr, port as u16), protocol_version));
                 if results.len() % 1000 == 0 {
                     //println!("{} ips", results.len());

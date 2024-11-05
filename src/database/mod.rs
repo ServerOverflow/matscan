@@ -62,7 +62,7 @@ impl Database {
             .expect("bad servers collection must exist");
         while let Some(Ok(doc)) = cursor.next().await {
             if let Some(Bson::String(ip)) = doc.get("ip") {
-                bad_ips.insert(Ipv4Addr::from_str(String::from(ip.as_str().unwrap())));
+                bad_ips.insert(Ipv4Addr::from_str(ip.as_str())?);
             }
         }
 
@@ -341,7 +341,7 @@ pub async fn collect_all_servers(
         let Some(port) = get_u32(&doc, "port") else {
             continue;
         };
-        servers.push(SocketAddrV4::new(Ipv4Addr::from_str(String::from(ip.as_str().unwrap())), port as u16));
+        servers.push(SocketAddrV4::new(Ipv4Addr::from_str(ip.as_str())?, port as u16));
 
         if servers.len() % 10000 == 0 {
             println!("Collected {} servers", servers.len());
