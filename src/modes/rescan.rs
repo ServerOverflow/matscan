@@ -96,7 +96,7 @@ pub async fn get_ranges(
             println!("Found {addr} in bad IPs when it shouldn't be, deleting it");
             database
                 .client
-                .database("mcscanner")
+                .database("matscan")
                 .collection::<bson::Document>("servers")
                 .delete_many(doc! {
                     "addr": u32::from(addr),

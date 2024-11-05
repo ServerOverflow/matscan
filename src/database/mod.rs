@@ -48,14 +48,14 @@ impl Database {
 
         // ping the database to make sure it's up
         client
-            .database("mcscanner")
+            .database("matscan")
             .run_command(doc! {"ping": 1})
             .await?;
 
         // download bad ips
         let mut bad_ips = HashSet::new();
         let mut cursor = client
-            .database("mcscanner")
+            .database("matscan")
             .collection::<Document>("bad_servers")
             .find(doc! {})
             .await
@@ -95,7 +95,7 @@ impl Database {
     pub async fn get_exclusions(&self) -> anyhow::Result<HashSet<String>> {
         let mut exclusions = HashSet::new();
         let mut cursor = self.client
-            .database("mcscanner")
+            .database("matscan")
             .collection::<Document>("exclusions")
             .find(doc! {})
             .await
@@ -118,7 +118,7 @@ impl Database {
     pub async fn delete_spam_historical_players(&self) {
         let collection = self
             .client
-            .database("mcscanner")
+            .database("matscan")
             .collection::<Document>("servers");
 
         let mut cursor = collection
@@ -185,19 +185,19 @@ impl Database {
         }
     }
 
-    pub fn mcscanner_database(&self) -> mongodb::Database {
-        self.client.database("mcscanner")
+    pub fn matscan_database(&self) -> mongodb::Database {
+        self.client.database("matscan")
     }
 
     pub fn servers_coll(&self) -> Collection<Document> {
-        self.mcscanner_database().collection::<Document>("servers")
+        self.matscan_database().collection::<Document>("servers")
     }
 
     pub async fn add_to_bad_ips(self, addr: Ipv4Addr) -> anyhow::Result<()> {
         self.shared.lock().bad_ips.insert(addr);
 
         self.client
-            .database("mcscanner")
+            .database("matscan")
             .collection::<Document>("bad_servers")
             .update_one(
                 doc! { "addr": u32::from(addr) },
@@ -214,7 +214,7 @@ impl Database {
         // delete all servers with this ip that aren't on 25565
         let r = self
             .client
-            .database("mcscanner")
+            .database("matscan")
             .collection::<Document>("servers")
             .delete_many(doc! {
                 "addr": u32::from(addr),

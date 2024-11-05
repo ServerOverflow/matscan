@@ -154,7 +154,7 @@ async fn flush_bulk_updates(
         trace!("bulk_updates_not_reviving: {bulk_updates_not_reviving:?}");
         trace!("bulk_updates_reviving: {bulk_updates_reviving:?}");
 
-        let db = database.mcscanner_database();
+        let db = database.matscan_database();
         let result_not_reviving = db
             .collection::<bson::Document>("servers")
             .bulk_update(&db, bulk_updates_not_reviving)
@@ -185,7 +185,7 @@ async fn flush_bulk_updates(
     } else {
         // if we're not upserting then we're probably doing something like
         // fingerprinting so reviving/inserting doesn't make sense
-        let db = database.mcscanner_database();
+        let db = database.matscan_database();
         let result = db
             .collection::<bson::Document>("servers")
             .bulk_update(&db, bulk_updates)
