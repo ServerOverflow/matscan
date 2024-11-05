@@ -36,25 +36,3 @@ jobs:
         with:
           name: matscan
           path: target/release/matscan
-
-      - name: Versions
-        id: version
-        run: |
-          echo "::set-output name=version::$(cargo metadata --format-version 1 --no-deps | jq .packages[0].version -r | sed 's/^/v/')"
-          echo "::set-output name=tag::$(git describe --tags)"
-
-      - name: Calculate SHA512 checksum
-        run: sha512sum target/release/matscan > matscan.sha512
-
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: github.base_ref != 'master'
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.version }} - NAME
-          draft: true
-          files: |
-            target/release/matscan
-            matscan.sha512
-          body: |
-            - ${{ github.event.head_commit.message }} ${{ github.sha }}
