@@ -22,8 +22,8 @@ matscan is heavily inspired by [masscan](https://github.com/robertdavidgraham/ma
 - Written in R*st 🚀🚀🚀
 
 ## Note
-I highly encourage you to make your own server scanner instead of relying on someone else's code, I promise you'll have a lot more fun that way. \
-Can't really blame you though, as this fork exists only because I didn't want to deep dive into networking... at least for now. \
+I *highly encourage* you to make your own server scanner instead of relying on someone else's code, I promise you'll have a lot more fun that way. 
+Can't really blame you though, as this fork exists only because I didn't want to deep dive into networking... at least for now.
 Also, if you do intend on using any of the code here, please read the [license](LICENSE) that the original author wrote.
 
 ## Usage
