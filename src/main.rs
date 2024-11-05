@@ -53,14 +53,6 @@ async fn main() -> anyhow::Result<()> {
     init_tracing(&config);
     info!("Logging initialized");
 
-    println!("parsing exclude file");
-    let exclude_ranges = exclude::parse_file("exclude.conf")?;
-    println!(
-        "excluding {} ips ({} ranges)",
-        exclude_ranges.count(),
-        exclude_ranges.ranges().len()
-    );
-
     let minecraft_protocol = protocols::Minecraft::new(
         &config.target.addr,
         config.target.port,
@@ -212,6 +204,12 @@ async fn main() -> anyhow::Result<()> {
         }
 
         let count_before_exclude = ranges.count();
+        let exclude_ranges = exclude::parse(&database.get_exclusions().unwrap())?;
+        println!(
+            "excluding {} ips ({} ranges)",
+            exclude_ranges.count(),
+            exclude_ranges.ranges().len()
+        );
         ranges.apply_exclude(&exclude_ranges);
 
         let bad_ips = Ipv4Ranges::new(

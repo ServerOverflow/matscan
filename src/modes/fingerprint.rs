@@ -20,12 +20,12 @@ pub async fn get_addrs_and_protocol_versions(
         },
         "$or": [
             {
-                "fingerprint.activeMinecraft.timestamp": {
+                "fingerprint.active.timestamp": {
                     // the last active fingerprint must've been over a week ago
                     "$lt": bson::DateTime::from(SystemTime::now() - Duration::from_secs(60 * 60 * 24 * 7)),
                 }
             },
-            { "fingerprint.activeMinecraft": { "$exists": false } },
+            { "fingerprint.active": { "$exists": false } },
         ]
     };
 

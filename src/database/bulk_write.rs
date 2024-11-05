@@ -40,7 +40,7 @@ pub struct BulkUpdateUpsertResult {
 
 #[async_trait]
 pub trait CollectionExt {
-    async fn bulk_update<V, U>(
+    async fn bulk_update<'async_trait, V, U>(
         &self,
         db: &mongodb::Database,
         updates: V,
@@ -52,7 +52,7 @@ pub trait CollectionExt {
 
 #[async_trait]
 impl<M: Send + Sync> CollectionExt for mongodb::Collection<M> {
-    async fn bulk_update<V, U>(
+    async fn bulk_update<'async_trait, V, U>(
         &self,
         db: &mongodb::Database,
         updates: V,

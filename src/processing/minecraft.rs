@@ -239,41 +239,25 @@ fn clean_response_data(
     data: &serde_json::Value,
     passive_minecraft_fingerprint: Option<PassiveMinecraftFingerprint>,
 ) -> Option<Document> {
-    let data_serde_json = data.as_object()?.to_owned();
+    let json = data.as_object()?.to_owned();
     let mut data = Bson::deserialize(data).ok()?;
     let mut data = data.as_document_mut()?.to_owned();
-    // default to empty string if description is missing
-    let Some(description) = data_serde_json
-        .get("description")
-        .map(|d| FormattedText::deserialize(d).unwrap_or_default())
+    let Some(description) = json.get("description")
+        //.map(|d| FormattedText::deserialize(d).unwrap_or_default())
     else {
         // no description, so probably not even a minecraft server
         return None;
     };
 
-    let description = description.to_string();
+    data.insert("description", Bson::String(description.to_string()));
 
-    // update description to be a string
-    data.insert(
-        "description".to_string(),
-        Bson::String(description.to_string()),
-    );
+    // forge stuff
+    let legacy_forge = data.contains_key("modinfo");
+    let new_forge = data.contains_key("forgeData");
+    data.insert("isForge", legacy_forge || new_forge);
 
-    // maybe in the future we can store favicons in a separate collection
-    if data.contains_key("favicon") {
-        data.insert("favicon", Bson::Boolean(true));
-    }
-
-    if data.contains_key("modinfo") {
-        // forge server
-        data.insert("modinfo", Bson::Boolean(true));
-    }
-
-    if data.contains_key("forgeData") {
-        data.insert("forgeData", Bson::Boolean(true));
-    }
-
-    let version_name = data
+    // This is going to be handled on the frontend for me to be able to update the list at any time
+    /*let version_name = data
         .get("version")
         .and_then(|v| v.as_document())
         .and_then(|v| v.get("name"))
@@ -292,21 +276,20 @@ fn clean_response_data(
             "COSMIC GUARD" | "TCPShield.com" | "â  Error" | "⚠ Error"
         )
     {
-        return None;
-    }
+        return None
+    }*/
 
     let mut is_online_mode: Option<bool> = None;
     let mut mixed_online_mode = false;
     let mut fake_sample = false;
     let mut has_players = false;
 
-    let mut players_data = bson::Document::default();
-    let mut extra_data = bson::Document::default();
+    let mut players_data = Document::default();
 
-    // servers with this motd randomize the online players
-    let should_ignore_players = description == "To protect the privacy of this server and its\nusers, you must log in once to see ping data.";
+    // servers with this MOTD randomize the online players
+    let player_list_hidden = description == "To protect the privacy of this server and its\nusers, you must log in once to see ping data.";
 
-    if !should_ignore_players {
+    if !player_list_hidden {
         for player in data
             .get("players")
             .and_then(|p| p.as_document())
@@ -367,55 +350,55 @@ fn clean_response_data(
         }
     }
 
+    let mut final_cleaned = doc! {
+        "timestamp": bson::DateTime::from_system_time(SystemTime::now()),
+        "minecraft": data,
+    };
+
+    // C# enums are serialized as an int32 inside the BSON document
+    if mixed_online_mode {
+        final_cleaned.insert("onlineModeGuess", Bson::Int32(2)); // mixed
+    } else if let Some(_) = is_online_mode {
+        final_cleaned.insert("onlineModeGuess", Bson::Int32(1)); // online
+    } else {
+        final_cleaned.insert("onlineModeGuess", Bson::Int32(0)); // offline
+    }
+
     if !fake_sample {
-        if mixed_online_mode {
-            extra_data.insert("onlineMode", Bson::Null);
-        } else if let Some(is_online_mode) = is_online_mode {
-            extra_data.insert("onlineMode", Bson::Boolean(is_online_mode));
-        }
+        final_cleaned.extend(players_data);
         if has_players {
-            extra_data.insert(
+            final_cleaned.insert(
                 "lastActive",
                 Bson::DateTime(bson::DateTime::from_system_time(SystemTime::now())),
             );
         } else {
-            extra_data.insert(
+            final_cleaned.insert(
                 "lastEmpty",
                 Bson::DateTime(bson::DateTime::from_system_time(SystemTime::now())),
             );
         }
     }
 
-    let mut final_cleaned = doc! {
-        "timestamp": bson::DateTime::from_system_time(SystemTime::now()),
-        "minecraft": data,
-    };
-    if !fake_sample {
-        final_cleaned.extend(players_data);
-    }
-
     if let Some(passive_minecraft_fingerprint) = passive_minecraft_fingerprint {
         final_cleaned.insert(
-            "fingerprint.minecraft.incorrectOrder",
+            "fingerprint.passive.incorrectOrder",
             Bson::Boolean(passive_minecraft_fingerprint.incorrect_order),
         );
         if let Some(field_order) = passive_minecraft_fingerprint.field_order {
             final_cleaned.insert(
-                "fingerprint.minecraft.fieldOrder",
+                "fingerprint.passive.fieldOrder",
                 Bson::String(field_order),
             );
         }
         final_cleaned.insert(
-            "fingerprint.minecraft.emptySample",
+            "fingerprint.passive.emptySample",
             Bson::Boolean(passive_minecraft_fingerprint.empty_sample),
         );
         final_cleaned.insert(
-            "fingerprint.minecraft.emptyFavicon",
+            "fingerprint.passive.emptyFavicon",
             Bson::Boolean(passive_minecraft_fingerprint.empty_favicon),
         );
     }
-
-    final_cleaned.extend(extra_data);
 
     Some(final_cleaned)
 }
@@ -451,44 +434,42 @@ pub fn create_bulk_update(
     }
 
     let mut is_bad_ip = false;
-    {
-        let mut shared = database.shared.lock();
-        let ips_with_same_hash = shared.ips_with_same_hash.get_mut(target.ip());
-        if let Some((data, previously_checked_ports)) = ips_with_same_hash {
-            if !previously_checked_ports.contains(&target.port()) {
-                if let Some(count) = &mut data.count {
-                    let this_server_hash = determine_hash(&mongo_update)?;
+    let mut shared = database.shared.lock();
+    let ips_with_same_hash = shared.ips_with_same_hash.get_mut(target.ip());
+    if let Some((data, previously_checked_ports)) = ips_with_same_hash {
+        if !previously_checked_ports.contains(&target.port()) {
+            if let Some(count) = &mut data.count {
+                let this_server_hash = determine_hash(&mongo_update)?;
 
-                    if this_server_hash == data.hash {
-                        *count += 1;
-                        previously_checked_ports.insert(target.port());
+                if this_server_hash == data.hash {
+                    *count += 1;
+                    previously_checked_ports.insert(target.port());
 
-                        if *count >= 100 {
-                            // too many servers with the same hash... add to bad ips!
-                            println!("found a new bad ip: {} :(", target.ip());
-                            // calls add_to_bad_ips slightly lower down
-                            // we have to do it like that to avoid keeping the lock during the await
-                            is_bad_ip = true;
-                        }
-                    } else {
-                        // this server has a different hash than the other servers with the same IP
-                        data.count = None;
+                    if *count >= 100 {
+                        // too many servers with the same hash... add to bad ips!
+                        println!("found a new bad ip: {} :(", target.ip());
+                        // calls add_to_bad_ips slightly lower down
+                        // we have to do it like that to avoid keeping the lock during await
+                        is_bad_ip = true;
                     }
+                } else {
+                    // this server has a different hash than the other servers with the same IP
+                    data.count = None;
                 }
             }
-        } else {
-            let this_server_hash = determine_hash(&mongo_update)?;
-            shared.ips_with_same_hash.insert(
-                *target.ip(),
-                (
-                    CachedIpHash {
-                        count: Some(1),
-                        hash: this_server_hash,
-                    },
-                    HashSet::from_iter(vec![target.port()]),
-                ),
-            );
         }
+    } else {
+        let this_server_hash = determine_hash(&mongo_update)?;
+        shared.ips_with_same_hash.insert(
+            *target.ip(),
+            (
+                CachedIpHash {
+                    count: Some(1),
+                    hash: this_server_hash,
+                },
+                HashSet::from_iter(vec![target.port()]),
+            ),
+        );
     }
 
     if is_bad_ip {

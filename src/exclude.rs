@@ -1,19 +1,15 @@
-use std::{fs, net::Ipv4Addr, str::FromStr};
-
+use std::{net::Ipv4Addr, str::FromStr};
+use std::collections::HashSet;
 use crate::scanner::targets::{Ipv4Range, Ipv4Ranges};
 
 use anyhow::anyhow;
 
-pub fn parse_file(input: &str) -> anyhow::Result<Ipv4Ranges> {
-    let input = fs::read_to_string(input)?;
-
-    parse(&input)
-}
-
-fn parse(input: &str) -> anyhow::Result<Ipv4Ranges> {
+// no need to change anything here really
+// it should be interpreted properly anyway
+pub fn parse(input: &HashSet<String>) -> anyhow::Result<Ipv4Ranges> {
     let mut ranges = Vec::new();
 
-    for line in input.lines() {
+    for line in input {
         let line = line.trim();
 
         if line.is_empty() || line.starts_with('#') {

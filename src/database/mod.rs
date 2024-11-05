@@ -92,6 +92,26 @@ impl Database {
         Ok(db)
     }
 
+    pub async fn get_exclusions(&self) -> anyhow::Result<HashSet<String>> {
+        let mut exclusions = HashSet::new();
+        let mut cursor = self.client
+            .database("mcscanner")
+            .collection::<Document>("exclusions")
+            .find(doc! {})
+            .await
+            .expect("exclusions collection must exist");
+
+        while let Some(Ok(doc)) = cursor.next().await {
+            if let Some(Bson::Array(ranges)) = doc.get("ranges") {
+                for range in ranges {
+                    exclusions.insert(String::from(range.as_str()));
+                }
+            }
+        }
+
+        Ok(exclusions)
+    }
+
     /// Some servers randomize the server list ping every time and fill up our
     /// database. This function deletes the `players` field from servers with
     /// more than 1000 historical players.
