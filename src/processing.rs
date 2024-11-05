@@ -208,25 +208,25 @@ async fn flush_bulk_updates(
     let mut changes = Vec::new();
     if updated_but_not_revived_count > 0 {
         changes.push(format!(
-            "{YELLOW}updated {BOLD}{updated_but_not_revived_count}{RESET} {GRAY}({}){RESET}",
+            "{YELLOW}updated {BOLD}{updated_but_not_revived_count}{RESET} {GRAY}({} total){RESET}",
             shared.results - shared.revived - shared.total_new
         ));
     }
     if inserted_count > 0 {
         changes.push(format!(
-            "{BLUE}added {BOLD}{inserted_count}{RESET} {GRAY}({}){RESET}",
+            "{BLUE}added {BOLD}{inserted_count}{RESET} {GRAY}({} total){RESET}",
             shared.total_new
         ));
     }
     if revived_count > 0 {
         changes.push(format!(
-            "{GREEN}revived {BOLD}{revived_count}{RESET} {GRAY}({}){RESET}",
+            "{GREEN}revived {BOLD}{revived_count}{RESET} {GRAY}({} total){RESET}",
             shared.revived
         ));
     }
 
     if !changes.is_empty() {
-        println!("{}", changes.into_iter().collect::<Vec<_>>().join(", "));
+        println!("Changes: {}", changes.into_iter().collect::<Vec<_>>().join(", "));
     }
 
     Ok(())
