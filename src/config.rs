@@ -1,7 +1,5 @@
 use std::path::PathBuf;
-
 use serde::Deserialize;
-
 use crate::scanner::SourcePort;
 
 #[derive(Deserialize, Clone)]
@@ -46,6 +44,9 @@ pub struct Config {
     /// to specify in the SLP request to the server.
     pub target: TargetConfig,
 
+    /// Allows you to specify a TCP fingerprint
+    pub fingerprint: Option<FingerprintConfig>,
+
     pub scanner: ScannerConfig,
 
     // useful if you want to do rescanning with different options
@@ -74,6 +75,16 @@ pub struct Config {
     /// as the ones that are shown in stdout.
     #[serde(default)]
     pub logging_dir: Option<PathBuf>,
+}
+
+#[derive(Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct FingerprintConfig {
+    /// P0F-formatted signature string
+    pub signature: String,
+
+    /// MSS value to use if not specified in the signature
+    pub mss: u16
 }
 
 #[derive(Deserialize, Clone)]

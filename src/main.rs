@@ -63,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let mut database = Database::connect(&config.mongodb_uri).await?;
-    let scanner = Scanner::new(config.source_port);
+    let scanner = Scanner::new(config.source_port, config.fingerprint.clone());
     let mut mode_picker = ModePicker::default();
 
     // the number of times we've done a scan, used for switching between different

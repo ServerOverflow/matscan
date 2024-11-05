@@ -144,7 +144,7 @@ impl RawSocket {
             match self.send(buffer) {
                 Ok(_) => break,
                 Err(err) => match err.kind() {
-                    std::io::ErrorKind::WouldBlock => {}
+                    io::ErrorKind::WouldBlock => {}
                     e => panic!("error sending packet: {:?}", e),
                 },
             }
