@@ -8,7 +8,7 @@ pub struct TcpFingerprint {
 }
 
 impl TcpFingerprint {
-    pub fn parse_signature(sig: &str, mss_arg: u16) -> Self {
+    pub fn parse_signature(sig: &str, mss_arg: Option<u16>) -> Self {
         let parts: Vec<&str> = sig.split(":").collect();
         if parts.len() != 8 {
             panic!("Invalid p0f signature specified (expected 8 parts)");
@@ -18,7 +18,11 @@ impl TcpFingerprint {
             panic!("Invalid p0f signature specified (only IPv4 is supported)");
         }
 
-        let mut mss = mss_arg;
+        let mut mss: u16;
+        if let Some(mss_arg) = mss_arg {
+            mss = mss_arg;
+        }
+
         let initial_ttl = parts[1].parse::<u8>().unwrap();
         if parts[3] != "*" {
             mss = parts[3].parse::<u16>().unwrap();

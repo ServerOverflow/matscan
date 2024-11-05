@@ -84,7 +84,8 @@ pub struct FingerprintConfig {
     pub signature: String,
 
     /// MSS value to use if not specified in the signature
-    pub mss: u16
+    #[serde(default)]
+    pub mss: Option<u16>
 }
 
 #[derive(Deserialize, Clone)]
