@@ -34,7 +34,7 @@ Also be aware that matscan only supports Linux, but you probably shouldn't be ru
 1) Rename `example-config.toml` to `config.toml` and refer to [config.rs](https://github.com/TheAirBlow/matscan/blob/master/src/config.rs) for the format.
 2) Create a MongoDB database with all necessary collections and indexes:
 ```js
-use mcscanner
+use matscan
 db.createCollection("servers")
 db.createCollection("bad_servers")
 db.createCollection("exclusions")
