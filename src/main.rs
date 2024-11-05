@@ -204,7 +204,7 @@ async fn main() -> anyhow::Result<()> {
         }
 
         let count_before_exclude = ranges.count();
-        let exclude_ranges = exclude::parse(&database.get_exclusions().unwrap())?;
+        let exclude_ranges = exclude::parse(&database.get_exclusions().await.unwrap())?;
         println!(
             "excluding {} ips ({} ranges)",
             exclude_ranges.count(),

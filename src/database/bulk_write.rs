@@ -5,7 +5,6 @@
 
 use std::borrow::Borrow;
 
-use async_trait::async_trait;
 use bson::{doc, oid::ObjectId, to_bson, Document};
 use mongodb::options::UpdateOptions;
 use serde::Deserialize;
@@ -38,7 +37,6 @@ pub struct BulkUpdateUpsertResult {
     pub id: ObjectId,
 }
 
-#[async_trait]
 pub trait CollectionExt {
     async fn bulk_update<'async_trait, V, U>(
         &self,
@@ -50,7 +48,6 @@ pub trait CollectionExt {
         U: 'async_trait + Send + Sync + Borrow<BulkUpdate>;
 }
 
-#[async_trait]
 impl<M: Send + Sync> CollectionExt for mongodb::Collection<M> {
     async fn bulk_update<'async_trait, V, U>(
         &self,

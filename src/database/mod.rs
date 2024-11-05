@@ -104,7 +104,7 @@ impl Database {
         while let Some(Ok(doc)) = cursor.next().await {
             if let Some(Bson::Array(ranges)) = doc.get("ranges") {
                 for range in ranges {
-                    exclusions.insert(String::from(range.as_str()));
+                    exclusions.insert(String::from(range.as_str().unwrap()));
                 }
             }
         }

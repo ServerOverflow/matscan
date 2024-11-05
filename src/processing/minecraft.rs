@@ -8,7 +8,6 @@ use std::{
 
 use anyhow::bail;
 use async_trait::async_trait;
-use azalea_chat::FormattedText;
 use bson::{doc, Bson, Document};
 use mongodb::options::UpdateOptions;
 use parking_lot::Mutex;
