@@ -18,7 +18,7 @@ impl TcpFingerprint {
             panic!("Invalid p0f signature specified (only IPv4 is supported)");
         }
 
-        let mut mss: u16;
+        let mut mss: u16 = 0;
         if let Some(mss_arg) = mss_arg {
             mss = mss_arg;
         }
@@ -79,6 +79,6 @@ impl TcpFingerprint {
 impl Default for TcpFingerprint {
     fn default() -> Self {
         // Default signature for Linux 3.11 and newer
-        Self::parse_signature("*:64:0:*:mss*20,10:mss,sok,ts,nop,ws:df,id+:0", 1500)
+        Self::parse_signature("*:64:0:*:mss*20,10:mss,sok,ts,nop,ws:df,id+:0", Some(1500))
     }
 }
