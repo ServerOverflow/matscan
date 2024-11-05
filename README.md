@@ -27,9 +27,12 @@ Can't really blame you though, as this fork exists only because I didn't want to
 Also, if you do intend on using any of the code here, please read the [license](LICENSE) that the original author wrote.
 
 ## Usage
-It is assumed that you know the basics of server scanning. Otherwise, I recommend reading the [masscan readme](https://github.com/robertdavidgraham/masscan/blob/master/README.md) and [documentation](https://github.com/robertdavidgraham/masscan/blob/master/doc/masscan.8.markdown). Also be aware that matscan only supports Linux, but you probably shouldn't be running it at home anyway. \
-Rename `example-config.toml` to `config.toml` and change the settings as you desire. Refer to [config.rs](https://github.com/TheAirBlow/matscan/blob/master/src/config.rs) for more information. \
-You'll also have to make a MongoDB database called `mcscanner` with three collections called `servers`, `bad_servers` and `exclusions`. You should add a unique index for `addr+port` and a normal index for `timestamp` in the `servers` collection:
+It is assumed that you know the basics of server scanning. Otherwise, I recommend reading the [masscan readme](https://github.com/robertdavidgraham/masscan/blob/master/README.md) and [documentation](https://github.com/robertdavidgraham/masscan/blob/master/doc/masscan.8.markdown).
+Also be aware that matscan only supports Linux, but you probably shouldn't be running it at home anyway.
+You can use the compiled binary without the rest of the code once compiled as long as you put the `config.toml` in the working directory.
+
+1) Rename `example-config.toml` to `config.toml` and refer to [config.rs](https://github.com/TheAirBlow/matscan/blob/master/src/config.rs) for the format.
+2) Create a MongoDB database with all necessary collections and indexes:
 ```js
 use mcscanner
 db.createCollection("servers")
@@ -39,7 +42,7 @@ db.servers.createIndex({ addr: 1, port: 1 }, { unique: true })
 db.servers.createIndex({ timestamp: 1 })
 ```
 
-As for `exclusions`, there's an `ranges` array and a `comment` string for each document. You can populate it from the provided `exclude.conf` with this script:
+3) Populate the exclusions collection from the included `exclude.conf`:
 ```js
 const exclude = fs.readFileSync("exclude.conf", 'utf8');
 const lines = exclude.split("\n");
@@ -72,7 +75,7 @@ for (const line of lines) {
 }
 ```
 
-To build and start the project, do this:
+4) Setup iptables, build and start matscan:
 ```sh
 # Firewall port 61000 so your OS doesn't close the connections
 # Note: You probably want to use something like iptables-persistent to save this across reboots
@@ -81,5 +84,3 @@ iptables -A INPUT -p tcp --dport 61000 -j DROP
 # Run in release mode
 cargo b -r && sudo ./target/release/matscan
 ```
-
-You can use the compiled binary without the rest of the code as long as you put the `config.toml` in the working directory.
