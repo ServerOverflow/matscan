@@ -6,7 +6,7 @@ matscan is heavily inspired by [masscan](https://github.com/robertdavidgraham/ma
 - Store exclusions in MongoDB instead of a configuration file and reload them each run
 - Small changes to the BSON format data is stored as (so it's less confusing)
 - Minor fixes here and there (e.g. only pre-1.13 forge SLP is detected)
-= Ability to set a custom TCP signature to troll honeypot admins
+- Ability to set a custom TCP signature to troll honeypot admins
 - Make the output of matscan less bloated with debug information
 - Other miscellaneous changes I can't be bothered to document
 
