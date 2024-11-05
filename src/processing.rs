@@ -83,19 +83,18 @@ where
                 if let Err(err) =
                     flush_bulk_updates(&database, mem::take(&mut bulk_updates), &shared).await
                 {
-                    eprintln!("{err}");
+                    eprintln!("Failed to flush bulk updates: {err}");
                 }
             }
         }
 
         if !bulk_updates.is_empty() {
             if let Err(err) = flush_bulk_updates(&database, bulk_updates, &shared).await {
-                eprintln!("{err}");
+                eprintln!("Failed to flush bulk updates: {err}");
             }
         }
 
         shared.lock().is_processing = false;
-        // println!("\x1b[90m\x1b[3mprocessing task is now idle\x1b[m");
     }
 }
 

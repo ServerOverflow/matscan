@@ -10,13 +10,13 @@ use crate::{
 
 /// Scan ports that are likely to have servers on random ranges.
 pub async fn get_ranges(database: &Database) -> anyhow::Result<Vec<ScanRange>> {
-    println!("collecting servers");
+    println!("Collecting servers that were active in the last 30 days");
     let known_servers =
         crate::database::collect_all_servers(database, CollectServersFilter::Active30d).await?;
-    println!("finished collecting {} servers", known_servers.len());
+    println!("Collected {} servers in total", known_servers.len());
 
     let ranges: HashMap<(u8, u8, u8), ServerGroup> = to_ranges(&known_servers);
-    println!("converted into {} ranges", ranges.len());
+    println!("Converted them into {} ranges", ranges.len());
 
     if ranges.is_empty() {
         return Ok(vec![]);

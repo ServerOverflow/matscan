@@ -28,7 +28,7 @@ pub const ETH_HEADER_LEN: usize = 14;
 
 fn get_interface() -> NetworkInterface {
     let interface_name = default_net::get_default_interface().unwrap().name;
-    println!("interface name: {interface_name}");
+    println!("Network interface: {interface_name}");
 
     // Find the network interface with the provided name
     let interfaces = datalink::interfaces();
@@ -105,9 +105,6 @@ impl StatelessTcp {
     /// `iptables -A INPUT -p tcp --dport 61000 -j DROP`
     pub fn new(source_port: SourcePort) -> Self {
         let interface = get_interface();
-        println!("interface: {:?}", interface);
-
-        println!("{:?}", default_net::get_default_interface());
         let gateway_mac = if let Ok(default_gateway) = default_net::get_default_gateway() {
             Some(MacAddr::from(default_gateway.mac_addr.octets()))
         } else {

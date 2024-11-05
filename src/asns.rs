@@ -16,7 +16,7 @@ pub async fn download() -> anyhow::Result<AsnRanges> {
         .get("https://iptoasn.com/data/ip2asn-v4-u32.tsv.gz")
         .send()
         .await?;
-    println!("Downloaded ASN data");
+    println!("ASN data downloaded successfully");
 
     let resp = resp.bytes().await?;
     let resp = std::io::Cursor::new(resp);
@@ -52,7 +52,7 @@ pub async fn get() -> anyhow::Result<&'static AsnRanges> {
         match download().await {
             Ok(r) => break r,
             Err(e) => {
-                println!("Failed downloading ASNs: {e:?}");
+                println!("Failed to download ASNs: {e:?}");
                 println!("Waiting 10 seconds and retrying...");
                 tokio::time::sleep(Duration::from_secs(10)).await;
             }

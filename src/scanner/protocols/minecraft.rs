@@ -75,6 +75,7 @@ pub fn build_latest_request(hostname: &str, port: u16, protocol_version: i32) ->
         (port & 0b1111_1111) as u8, // server port as unsigned short
         0x01,                       // next state: 1 (status) as VarInt
     ]);
+
     // buffer for the 1st and 2nd packet
     let mut full_buffer = vec![];
     write_varint(&mut full_buffer, buffer.len() as i32); // length of 1st packet id + data as VarInt
@@ -83,11 +84,6 @@ pub fn build_latest_request(hostname: &str, port: u16, protocol_version: i32) ->
         1,    // length of 2nd packet id + data as VarInt
         0x00, // 2nd packet id: 0 for request as VarInt
     ]);
-
-    eprintln!("full_buffer: {full_buffer:?}");
-
-    // let mut f = std::fs::File::create("request.bin").unwrap();
-    // f.write_all(&full_buffer).unwrap();
 
     full_buffer
 }

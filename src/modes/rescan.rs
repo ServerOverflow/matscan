@@ -51,7 +51,7 @@ pub async fn get_ranges(
         );
     }
 
-    println!("filter: {:?}", filter);
+    //println!("filter: {:?}", filter);
 
     let mut bad_ips = database.shared.lock().bad_ips.to_owned();
 
@@ -89,10 +89,11 @@ pub async fn get_ranges(
             warn!("couldn't get port for doc: {doc:?}");
             continue;
         };
+
         // there shouldn't be any bad ips...
         let addr = Ipv4Addr::from(addr);
         if bad_ips.contains(&addr) && port != 25565 {
-            println!("we encountered a bad ip while getting ips to rescan :/ deleting {addr} from database.");
+            println!("Found {addr} in bad IPs when it shouldn't be, deleting it");
             database
                 .client
                 .database("mcscanner")
@@ -110,7 +111,7 @@ pub async fn get_ranges(
 
         ranges.push(ScanRange::single(addr, port as u16));
         if ranges.len() % 1000 == 0 {
-            println!("{} ips", ranges.len());
+            //println!("{} ips", ranges.len());
         }
     }
 

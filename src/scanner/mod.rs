@@ -97,7 +97,6 @@ impl ScannerReceiver {
                 break;
             }
 
-            // println!("switched to recv loop");
             let protocol = self.protocol.read();
             while let Some((ipv4, tcp)) = self.scanner.client.read.recv() {
                 let address = SocketAddrV4::new(ipv4.source, tcp.source);
@@ -211,14 +210,12 @@ impl ScannerReceiver {
                     syn_acks_received += 1;
                     trace!("syn acks: {syn_acks_received}");
 
-                    // println!("ok sent first ACK+data");
                 } else if tcp.flags & TcpFlags::ACK != 0 {
                     // ACK
                     trace!(
                         "ACK {address} with data: {}",
                         String::from_utf8_lossy(&tcp.payload)
                     );
-                    // println!("ACK {}:{}", ipv4.source, tcp.source);
 
                     // cookie +packet size + 1
                     let actual_ack = tcp.acknowledgement;
@@ -466,7 +463,7 @@ impl ScanSession {
                 } else {
                     format!("{} pps", packets_per_second.round() as u64)
                 };
-                println!("packets_sent = {packets_sent} ({packets_per_info}, throttler estimate: {throttler_packets_per_info})");
+                println!("Sent {packets_sent} packets ({packets_per_info}, throttler estimate: {throttler_packets_per_info})");
 
                 packets_sent_last_print = packets_sent;
                 last_print_time = Instant::now();

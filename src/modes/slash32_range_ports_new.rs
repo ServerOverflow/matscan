@@ -16,7 +16,6 @@ pub async fn get_ranges(database: &Database) -> anyhow::Result<Vec<ScanRange>> {
             .or_default()
             .push(server.port());
     }
-    println!("got open ports");
 
     let mut ranges = Vec::new();
     for (addr, ports) in open_ports {
@@ -63,7 +62,6 @@ pub async fn get_ranges(database: &Database) -> anyhow::Result<Vec<ScanRange>> {
             ranges.push(ScanRange::single_address(addr, lowest_port, highest_port));
         }
     }
-    println!("got ranges");
 
     Ok(ranges)
 }

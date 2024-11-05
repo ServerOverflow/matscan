@@ -37,16 +37,6 @@ impl Throttler {
     ///
     /// Based on masscan's throttler https://github.com/robertdavidgraham/masscan/blob/master/src/main-throttle.c#L59
     pub fn next_batch(&mut self) -> u64 {
-        // if let Some(last_batch) = self.batch_buffer.back() {
-        //     // if last batch was over a second ago then reset
-        //     if last_batch.time.elapsed() > Duration::from_secs(1) {
-        //         self.batch_size = 1.;
-        //         // self.batch_buffer.clear();
-        //         println!("\nover a second ago\n");
-        //         return self.next_batch();
-        //     }
-        // }
-
         let current_rate = self.estimated_packets_per_second();
 
         self.batch_buffer.push_back(Batch {
@@ -73,10 +63,8 @@ impl Throttler {
 
             self.batch_size *= 0.999;
 
-            // println!("sleeping for {sleep_time:?}");
             thread::sleep(sleep_time);
 
-            // println!("over max rate");
             return self.next_batch();
         }
 

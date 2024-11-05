@@ -19,7 +19,7 @@ pub struct Config {
     pub sleep_secs: Option<u64>,
 
     /// If true, the program will exit after the first scan. This is primarily
-    /// meant for for debugging purposes.
+    /// meant for debugging purposes.
     #[serde(default)]
     pub exit_on_done: bool,
 
@@ -41,11 +41,14 @@ pub struct Config {
     #[serde(default)]
     pub ping_timeout_secs: Option<u64>,
 
+    /// This is not the "target server" as you might assume.
+    /// Here you can specify the address, port and protocol version
+    /// to specify in the SLP request to the server.
     pub target: TargetConfig,
 
     pub scanner: ScannerConfig,
 
-    // useful if you want do be doing rescanning with different options
+    // useful if you want to do rescanning with different options
     #[serde(default)]
     pub rescan: RescanConfig,
     #[serde(default)]
@@ -85,8 +88,8 @@ pub struct TargetConfig {
 #[serde(deny_unknown_fields)]
 pub struct ScannerConfig {
     pub enabled: bool,
-    /// The list of modes that we'll use to scan. By default all modes are
-    /// included. Mode names are the same ones as in modes.json.
+    /// The list of modes that we'll use to scan. By default, all modes are
+    /// included. Refer to modes.rs for a list of modes.
     #[serde(default)]
     pub modes: Option<Vec<String>>,
 }

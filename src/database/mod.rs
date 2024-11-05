@@ -222,7 +222,7 @@ impl Database {
             })
             .await?;
 
-        println!("deleted {} bad servers", r.deleted_count);
+        println!("Deleted {} bad servers", r.deleted_count);
 
         Ok(())
     }

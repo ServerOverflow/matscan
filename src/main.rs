@@ -7,7 +7,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use dotenv::dotenv;
 use parking_lot::{Mutex, RwLock};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::{prelude::*, EnvFilter};
@@ -35,19 +34,23 @@ enum ModeCategory {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    println!("Starting...");
-
-    dotenv().ok();
-    println!("dotenv");
+    println!("Starting matscan (ServerOverflow edition)");
 
     // first command line argument is the location of the config file
     let config_file = env::args().nth(1).unwrap_or("config.toml".to_string());
 
-    let config_file_path = path::Path::new(&config_file).canonicalize()?;
+    let config_file_path = path::Path::new(&config_file);
+    if !config_file_path.exists() {
+        println!("No configuration file found, please create one!");
+        return Ok(());
+    }
+
     println!(
-        "parsing config at {}",
+        "Configuration file: {}",
         config_file_path.as_os_str().to_string_lossy()
     );
+
+    let config_file_path = config_file_path.canonicalize()?;
     let config: Config = toml::from_str(&fs::read_to_string(config_file_path)?)?;
 
     init_tracing(&config);
@@ -92,7 +95,9 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if mode_categories.is_empty() {
-        panic!("Scanner, rescanner, and fingerprinting are all disabled in the config. You should probably at least enable scanner.");
+        println!("Scanner, rescanner, and fingerprinting are all disabled in the config.");
+        println!("You must enable at least one mode for matscan to function.");
+        return Ok(());
     }
 
     // the protocol set here will be overwritten later so it doesn't actually matter
@@ -132,7 +137,7 @@ async fn main() -> anyhow::Result<()> {
             .into_iter()
             .map(|mode| {
                 ScanMode::from_str(&mode)
-                    .unwrap_or_else(|_| panic!("invalid mode {mode:?} in config.scanner.modes"))
+                    .unwrap_or_else(|_| panic!("Invalid mode {mode:?} specified in config"))
             })
             .collect::<Vec<_>>()
     });
@@ -152,19 +157,19 @@ async fn main() -> anyhow::Result<()> {
             ModeCategory::Normal => {
                 let chosen_mode = mode_picker.pick_mode(scan_modes.clone());
 
-                println!("chosen mode: {chosen_mode:?}");
+                println!("Chosen mode: {chosen_mode:?}");
 
                 let get_ranges_start = Instant::now();
                 ranges.extend(chosen_mode.get_ranges(&mut database).await?);
                 let get_ranges_end = Instant::now();
-                println!("get_ranges took {:?}", get_ranges_end - get_ranges_start);
+                println!("Took {:?} to get ranges", get_ranges_end - get_ranges_start);
 
                 mode = Some(chosen_mode);
                 *protocol.write() = Box::new(minecraft_protocol.clone());
                 processing_task.set_protocol::<protocols::Minecraft>();
             }
             ModeCategory::Rescan => {
-                println!("chosen mode: rescanning");
+                println!("Chosen mode: rescanning");
 
                 // add the ranges we're rescanning
                 for rescan_config in [
@@ -181,7 +186,7 @@ async fn main() -> anyhow::Result<()> {
                 processing_task.set_protocol::<protocols::Minecraft>();
             }
             ModeCategory::Fingerprint => {
-                println!("chosen mode: fingerprinting");
+                println!("Chosen mode: fingerprinting");
 
                 let mut fingerprint_ranges = Vec::new();
                 let mut fingerprint_protocol_versions = HashMap::new();
@@ -206,7 +211,7 @@ async fn main() -> anyhow::Result<()> {
         let count_before_exclude = ranges.count();
         let exclude_ranges = exclude::parse(&database.get_exclusions().await.unwrap())?;
         println!(
-            "excluding {} ips ({} ranges)",
+            "Excluded {} IP addresses ({} ranges)",
             exclude_ranges.count(),
             exclude_ranges.ranges().len()
         );
@@ -237,9 +242,9 @@ async fn main() -> anyhow::Result<()> {
 
         let target_count = ranges.count();
         let range_count = ranges.ranges().len();
-        println!("scanning {target_count} targets ({range_count} ranges)");
+        println!("Scanning {target_count} targets ({range_count} ranges)");
         println!(
-            "excluded {} targets from this scan",
+            "Excluded {} targets in total from this scan",
             count_before_exclude - target_count
         );
 
@@ -260,7 +265,7 @@ async fn main() -> anyhow::Result<()> {
         while !scanner_thread.is_finished() {
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
-        println!("waiting for processing to finish...");
+        println!("Waiting for processing to finish...");
 
         let processing_start = Instant::now();
         // wait until shared_process_data.processing_count is 0
@@ -272,12 +277,11 @@ async fn main() -> anyhow::Result<()> {
         // subtract the processing time from the sleep time
         if original_sleep_secs > processing_time.as_secs() {
             let sleep_secs = original_sleep_secs - processing_time.as_secs();
-            println!("sleeping for {sleep_secs} seconds");
+            println!("Sleeping for {sleep_secs} seconds before the next scan");
             tokio::time::sleep(Duration::from_secs(sleep_secs)).await;
         }
 
         // the thread should've finished by now so it'll join instantly
-        println!("joining scanner thread");
         let packets_sent = scanner_thread.join().unwrap();
 
         let mut shared_process_data = shared_process_data.lock();
@@ -290,15 +294,13 @@ async fn main() -> anyhow::Result<()> {
         );
 
         if config.exit_on_done {
-            println!("exit_on_done is true, exiting");
+            println!("Exiting after completing (as specified in configuration)");
             break;
         }
     }
 
     has_ended.store(true, std::sync::atomic::Ordering::Relaxed);
-    println!("finished writing, telling recv loop to stop...");
     recv_loop_thread.join().unwrap();
-    println!("done");
 
     Ok(())
 }
@@ -346,10 +348,10 @@ fn process_results(
     if let Some(mode) = mode {
         let added_per_minute = ((total_new + revived) as f64 / elapsed.as_secs_f64()) * 60.0;
         println!(
-            "ok finished adding to db after {BOLD}{elapsed_secs}{RESET} seconds (mode: {BOLD}{mode:?}{RESET}, {YELLOW}updated {BOLD}{results}{RESET}{YELLOW}/{packets_sent}{RESET}, {GREEN}revived {BOLD}{revived}{RESET}, {BLUE}added {total_new}{RESET}, {BOLD}{added_per_minute:.2}{RESET} new per minute)",
+            "Finished adding to DB after {BOLD}{elapsed_secs}{RESET} seconds (mode: {BOLD}{mode:?}{RESET}, {YELLOW}updated {BOLD}{results}{RESET}{YELLOW}/{packets_sent}{RESET}, {GREEN}revived {BOLD}{revived}{RESET}, {BLUE}added {total_new}{RESET}, {BOLD}{added_per_minute:.2}{RESET} new per minute)",
         );
         info!(
-            "Finished adding to database after {elapsed_secs} seconds. Mode: {mode:?}, updated {results}/{packets_sent}, revived {revived}, added {total_new}, {added_per_minute:.2} new per minute",
+            "Finished adding to DB after {elapsed_secs} seconds. Mode: {mode:?}, updated {results}/{packets_sent}, revived {revived}, added {total_new}, {added_per_minute:.2} new per minute",
         );
 
         // prioritize finding servers on the default port since they're more likely to
@@ -369,12 +371,12 @@ fn process_results(
         // (we add 30 seconds so if a mode finishes very quickly it's not super biased
         // towards it)
         let score = (unnormalized_score * 3600.0 / (elapsed.as_secs_f64() + 30.)).round() as usize;
-        println!("got score {score} from {unnormalized_score} = {total_new_score} + {revived_score} + {total_new_on_default_port_score}");
+        println!("Calculated score {score} from {unnormalized_score} = {total_new_score} + {revived_score} + {total_new_on_default_port_score}");
         mode_picker.update_mode(mode, score);
     } else {
         let percent_replied = (results as f64 / packets_sent as f64) * 100.0;
         println!(
-            "ok finished rescanning after {BOLD}{elapsed_secs}{RESET} seconds ({YELLOW}updated {BOLD}{results}{RESET}{YELLOW}/{packets_sent}{RESET}, {GREEN}revived {BOLD}{revived}{RESET}, {BOLD}{percent_replied:.2}%{RESET} replied)",
+            "Finished rescanning after {BOLD}{elapsed_secs}{RESET} seconds ({YELLOW}updated {BOLD}{results}{RESET}{YELLOW}/{packets_sent}{RESET}, {GREEN}revived {BOLD}{revived}{RESET}, {BOLD}{percent_replied:.2}%{RESET} replied)",
         );
         info!(
             "Finished rescanning after {elapsed_secs} seconds. Sent {packets_sent} SYNs, updated {results}, revived {revived}, {percent_replied:.2}% replied",

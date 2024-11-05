@@ -103,7 +103,7 @@ impl ProcessableProtocol for protocols::Minecraft {
 
             for current_player in &current_player_usernames {
                 if config.snipe.usernames.contains(current_player) {
-                    println!("snipe: {current_player} is in {target}");
+                    println!("Sniper: {current_player} is in {target}");
 
                     if !previous_player_usernames.contains(current_player) {
                         tokio::task::spawn(send_to_webhook(
@@ -446,7 +446,7 @@ pub fn create_bulk_update(
 
                     if *count >= 100 {
                         // too many servers with the same hash... add to bad ips!
-                        println!("found a new bad ip: {} :(", target.ip());
+                        println!("Found a new bad IP: {}", target.ip());
                         // calls add_to_bad_ips slightly lower down
                         // we have to do it like that to avoid keeping the lock during await
                         is_bad_ip = true;
@@ -476,8 +476,6 @@ pub fn create_bulk_update(
         bail!("bad ip {target:?}");
     }
 
-    // println!("{addr}:{port} -> {mongo_update:?}");
-    // println!("{}:{}", target.ip(), target.port());
 
     Ok(BulkUpdate {
         query: doc! {
@@ -501,7 +499,7 @@ async fn send_to_webhook(webhook_url: String, message: String) {
         .send()
         .await
     {
-        println!("{}", e);
+        println!("Failed to send a webhook message: {}", e);
     }
 }
 

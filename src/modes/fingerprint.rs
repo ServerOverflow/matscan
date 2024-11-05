@@ -29,8 +29,7 @@ pub async fn get_addrs_and_protocol_versions(
         ]
     };
 
-    println!("filter: {:?}", filter);
-
+    //println!("filter: {:?}", filter);
     let mut pipeline: Vec<Document> = vec![doc! { "$match": filter }];
     pipeline.push(
         doc! { "$project": { "addr": 1, "port": 1, "minecraft.version.protocol": 1, "_id": 0 } },
@@ -58,7 +57,7 @@ pub async fn get_addrs_and_protocol_versions(
                 let addr = Ipv4Addr::from(addr);
                 results.push((SocketAddrV4::new(addr, port as u16), protocol_version));
                 if results.len() % 1000 == 0 {
-                    println!("{} ips", results.len());
+                    //println!("{} ips", results.len());
                 }
             }
         }
