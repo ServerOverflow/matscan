@@ -8,6 +8,7 @@ use std::{
 
 use anyhow::bail;
 use async_trait::async_trait;
+use azalea_chat::FormattedText;
 use bson::{doc, Bson, Document};
 use mongodb::options::UpdateOptions;
 use parking_lot::Mutex;
@@ -249,6 +250,7 @@ fn clean_response_data(
     };
 
     data.insert("description", Bson::String(description.to_string()));
+    data.insert("cleanDescription", Bson::String(description.map(|d| FormattedText::deserialize(d).unwrap_or_default()).to_string()));
 
     // forge stuff
     let legacy_forge = data.contains_key("modinfo");
