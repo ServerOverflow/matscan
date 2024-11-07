@@ -250,7 +250,11 @@ fn clean_response_data(
     };
 
     data.insert("description", Bson::String(description.to_string()));
-    data.insert("cleanDescription", Bson::String(description.map(|d| FormattedText::deserialize(d).unwrap_or_default()).to_string()));
+
+    if let Some(clean_description) = json.get("description")
+        .map(|d| FormattedText::deserialize(d).unwrap_or_default()) {
+        data.insert("cleanDescription", Bson::String(clean_description.to_string()));
+    }
 
     // forge stuff
     let legacy_forge = data.contains_key("modinfo");
