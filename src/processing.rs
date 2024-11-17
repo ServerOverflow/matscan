@@ -225,9 +225,9 @@ async fn flush_bulk_updates(
         ));
     }
 
-    if !changes.is_empty() {
-        println!("Changes: {}", changes.into_iter().collect::<Vec<_>>().join(", "));
-    }
+    //if !changes.is_empty() {
+    //    println!("Changes: {}", changes.into_iter().collect::<Vec<_>>().join(", "));
+    //}
 
     Ok(())
 }

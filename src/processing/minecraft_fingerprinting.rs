@@ -74,7 +74,7 @@ impl ProcessableProtocol for protocols::MinecraftFingerprinting {
             ServerType::Unknown
         };
 
-        println!("Fingerprinted {target} as {server_type}: {data_string:?}");
+        //println!("Fingerprinted {target} as {server_type}: {data_string:?}");
 
         let mut mongo_update = doc! {
             "fingerprint.active.timestamp": Bson::DateTime(bson::DateTime::from_system_time(SystemTime::now())),

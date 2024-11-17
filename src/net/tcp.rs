@@ -109,9 +109,6 @@ impl StatelessTcp {
 
         let interface_mac = interface.mac;
 
-        #[cfg(feature = "benchmark")]
-        let mut mtu = 1000; // idk
-        #[cfg(not(feature = "benchmark"))]
         let mut mtu = socket.interface_mtu().unwrap();
         if interface_mac.is_some() {
             mtu += ETH_HEADER_LEN;
@@ -189,7 +186,7 @@ impl StatelessTcpWriteHalf {
             sequence,
             acknowledgement,
             flags: TcpFlags::ACK,
-            window: 32768,
+            window: self.fingerprint.window_size,
             urgent_ptr: 0,
             options: &[TcpOption::nop(), TcpOption::nop(), TcpOption::sack_perm()],
             payload: &[],
@@ -211,7 +208,7 @@ impl StatelessTcpWriteHalf {
             sequence,
             acknowledgement,
             flags: TcpFlags::RST | TcpFlags::ACK,
-            window: 32768,
+            window: self.fingerprint.window_size,
             urgent_ptr: 0,
             options: &[TcpOption::nop(), TcpOption::nop(), TcpOption::sack_perm()],
             payload: &[],

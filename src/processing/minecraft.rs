@@ -300,7 +300,6 @@ fn clean_response_data(
             .and_then(|p| p.as_document())
             .and_then(|p| p.get("sample"))
             .and_then(|p| p.as_array())
-            // only take the first 100 players in case the sample is massive
             .map(|s| s.iter().take(100).collect::<Vec<_>>())
             .unwrap_or_default()
         {
@@ -481,7 +480,6 @@ pub fn create_bulk_update(
         tokio::spawn(database.to_owned().add_to_bad_ips(*target.ip()));
         bail!("bad ip {target:?}");
     }
-
 
     Ok(BulkUpdate {
         query: doc! {

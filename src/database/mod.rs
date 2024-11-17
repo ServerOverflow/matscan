@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use std::str::FromStr;
-use bson::{Bson, Document};
+use bson::{Bson, DateTime, Document};
 use futures_util::{stream::StreamExt, TryStreamExt};
 use lru_cache::LruCache;
 use mongodb::{
@@ -16,6 +16,7 @@ use mongodb::{
     Client, Collection,
 };
 use parking_lot::Mutex;
+use crate::database::bulk_write::BulkUpdate;
 
 #[derive(Clone)]
 pub struct Database {
@@ -122,34 +123,13 @@ impl Database {
             .collection::<Document>("servers");
 
         let mut cursor = collection
-            .aggregate(
-                vec![
-                    doc! {"$match": {"players": {"$exists": true}}},
-                    doc! {"$project": {"playerCount": {"$size": {"$objectToArray": "$players"}}, "players": "$players"}},
-                    doc! {"$match": {"playerCount": {"$gt": 1000}}},
-                ],
+            .find(
+                doc! { "players": { "$size": { "$gt": 1000 } } }
             )
             .await
             .expect("servers collection must exist");
 
         while let Some(Ok(doc)) = cursor.next().await {
-            // delete the players field and then add it again but with the 1000 most recent
-            // players
-            let update = doc! { "$unset": { "players": "" } };
-            collection
-                .update_one(
-                    doc! {"_id": doc.get_object_id("_id").expect("_id must be present")},
-                    update,
-                )
-                .await
-                .expect("updating must not fail");
-            // it might not actually be necessary to do two updates here, i'm guessing it is
-            // though
-
-            // players looks like
-            // ```
-            // abcdundasheduuidefgh: { lastSeen: 2023-01-15T21:13:01.000Z, name: 'Herobrine' }
-            // ```
             let players = doc
                 .get_document("players")
                 .expect("players must be present");
@@ -167,6 +147,7 @@ impl Database {
                     .expect("lastSeen must be present");
                 a.cmp(b)
             });
+
             let players = players
                 .into_iter()
                 .rev()
@@ -174,7 +155,7 @@ impl Database {
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect::<Vec<(String, Bson)>>();
 
-            let update = doc! { "$set": { "players": bson::Document::from_iter(players) } };
+            let update = doc! { "$set": { "players": Document::from_iter(players) } };
             collection
                 .update_one(
                     doc! {"_id": doc.get_object_id("_id").expect("_id must be present")},
