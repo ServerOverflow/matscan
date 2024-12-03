@@ -96,7 +96,7 @@ pub async fn get_ranges(
             println!("Found {addr} in bad IPs when it shouldn't be, deleting it");
             database
                 .client
-                .database("matscan")
+                .database("server-overflow")
                 .collection::<bson::Document>("servers")
                 .delete_many(doc! {
                     "ip": addr.to_string(),

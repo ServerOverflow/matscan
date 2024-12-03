@@ -49,14 +49,14 @@ impl Database {
 
         // ping the database to make sure it's up
         client
-            .database("matscan")
+            .database("server-overflow")
             .run_command(doc! {"ping": 1})
             .await?;
 
         // download bad ips
         let mut bad_ips = HashSet::new();
         let mut cursor = client
-            .database("matscan")
+            .database("server-overflow")
             .collection::<Document>("bad_servers")
             .find(doc! {})
             .await
@@ -96,7 +96,7 @@ impl Database {
     pub async fn get_exclusions(&self) -> anyhow::Result<HashSet<String>> {
         let mut exclusions = HashSet::new();
         let mut cursor = self.client
-            .database("matscan")
+            .database("server-overflow")
             .collection::<Document>("exclusions")
             .find(doc! {})
             .await
@@ -119,7 +119,7 @@ impl Database {
     pub async fn delete_spam_historical_players(&self) {
         let collection = self
             .client
-            .database("matscan")
+            .database("server-overflow")
             .collection::<Document>("servers");
 
         let mut cursor = collection
@@ -167,7 +167,7 @@ impl Database {
     }
 
     pub fn matscan_database(&self) -> mongodb::Database {
-        self.client.database("matscan")
+        self.client.database("server-overflow")
     }
 
     pub fn servers_coll(&self) -> Collection<Document> {
@@ -178,7 +178,7 @@ impl Database {
         self.shared.lock().bad_ips.insert(addr);
 
         self.client
-            .database("matscan")
+            .database("server-overflow")
             .collection::<Document>("bad_servers")
             .update_one(
                 doc! { "ip": addr.to_string() },
@@ -195,7 +195,7 @@ impl Database {
         // delete all servers with this ip that aren't on 25565
         let r = self
             .client
-            .database("matscan")
+            .database("server-overflow")
             .collection::<Document>("servers")
             .delete_many(doc! {
                 "ip": addr.to_string(),
