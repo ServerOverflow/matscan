@@ -123,8 +123,12 @@ impl Database {
             .collection::<Document>("servers");
 
         let mut cursor = collection
-            .find(
-                doc! { "players": { "$size": { "$gt": 1000 } } }
+            .aggregate(
+                vec![
+                    doc! {"$match": {"players": {"$exists": true}}},
+                    doc! {"$project": {"playerCount": {"$size": {"$objectToArray": "$players"}}, "players": "$players"}},
+                    doc! {"$match": {"playerCount": {"$gt": 1000}}},
+                ],
             )
             .await
             .expect("servers collection must exist");
