@@ -35,8 +35,80 @@ Also be aware that matscan only supports Linux, but you probably shouldn't be ru
 1) Rename `example-config.toml` to `config.toml` and refer to [config.rs](https://github.com/TheAirBlow/matscan/blob/master/src/config.rs) for the format.
 2) Create a MongoDB database with all necessary collections and indexes:
 ```js
-use matscan
-db.createCollection("servers")
+use server-overflow
+db.createCollection("servers", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["minecraft"],
+      properties: {
+        minecraft: {
+          bsonType: "object",
+          properties: {
+            forgeData: {
+              bsonType: ["object", "null"],
+              properties: {
+                fmlNetworkVersion: { bsonType: ["null", "int", "long"] },
+                mods: {
+                  bsonType: "array",
+                  items: {
+                    bsonType: "object",
+                    properties: {
+                      modId: { bsonType: ["null", "string"] },
+                      modmarker: { bsonType: ["null", "string"] },
+                    }
+                  }
+                }
+              }
+            },
+            modinfo: {
+              bsonType: ["object", "null"],
+              properties: {
+                modList: {
+                  bsonType: ["array", "null"],
+                  items: {
+                    bsonType: "object",
+                    properties: {
+                      modid: { bsonType: ["null", "string"] },
+                      version: { bsonType: ["null", "string"] },
+                    }
+                  }
+                }
+              }
+            },
+            version: {
+              bsonType: ["object", "null"],
+              properties: {
+                name: { bsonType: ["null", "string"] },
+                protocol: { bsonType: ["null", "int", "long"] },
+              }
+            },
+            players: {
+              bsonType: ["object", "null"],
+              properties: {
+                online: { bsonType: ["null", "int", "long"] },
+                max: { bsonType: ["null", "int", "long"] },
+                sample: {
+                  bsonType: ["array", "null"],
+                  items: {
+                    bsonType: "object",
+                    properties: {
+                      name: { bsonType: ["null", "string"] },
+                      id: { bsonType: ["null", "string"] },
+                    }
+                  }
+                }
+              }
+            },
+            description: { bsonType: ["null", "string"] },
+            favicon: { bsonType: ["null", "string"] },
+            enforcesSecureChat: { bsonType: ["bool", "null"] }
+          }
+        }
+      }
+    }
+  }
+})
 db.createCollection("bad_servers")
 db.createCollection("exclusions")
 db.servers.createIndex({ ip: 1, port: 1 }, { unique: true })
@@ -53,26 +125,26 @@ let ranges = [];
 let comment = [];
 
 for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("#")) {
-        if (readComment && readRanges) {
-            db.exclusions.insertOne({
-                ranges: ranges,
-                comment: comment.join("\n").trim()
-            });
+  const trimmed = line.trim();
+  if (trimmed.startsWith("#")) {
+    if (readComment && readRanges) {
+      db.exclusions.insertOne({
+        ranges: ranges,
+        comment: comment.join("\n").trim()
+      });
 
-            readComment = false;
-            readRanges = false;
-            ranges = [];
-            comment = [];
-        }
-        
-        comment.push(trimmed.slice(1).trim());
-        readComment = true;
-    } else if (trimmed) {
-        ranges.push(trimmed);
-        readRanges = true;
+      readComment = false;
+      readRanges = false;
+      ranges = [];
+      comment = [];
     }
+    
+    comment.push(trimmed.slice(1).trim());
+    readComment = true;
+  } else if (trimmed) {
+    ranges.push(trimmed);
+    readRanges = true;
+  }
 }
 ```
 
