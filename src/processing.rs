@@ -18,7 +18,10 @@ use crate::{
     config::Config,
     database::{self, bulk_write::CollectionExt, Database},
     terminal_colors::*,
+    metrics::SERVERS_FOUND_COUNTER
 };
+use crate::metrics::{SERVERS_FINGERPRINTED_COUNTER, SERVERS_RESCANNED_COUNTER};
+use crate::modes::{ModeCategory, ScanMode};
 
 pub struct SharedData {
     pub database: Database,
@@ -36,6 +39,9 @@ pub struct SharedData {
 
     /// Whether the processing task is currently processing something.
     pub is_processing: bool,
+
+    pub category: Option<ModeCategory>,
+    pub mode: Option<ScanMode>
 }
 
 #[async_trait]
@@ -70,6 +76,22 @@ where
             let Some(bulk_update) = P::process(&shared, &config, target, &data, &database) else {
                 continue;
             };
+
+            let mode = format!("{:?}", shared.lock().mode);
+            if let Some(category) = shared.lock().category {
+                match category {
+                    ModeCategory::Normal => {
+                        SERVERS_FOUND_COUNTER.with_label_values(&[mode.as_str()]).inc();
+                    }
+                    ModeCategory::Rescan => {
+                        SERVERS_RESCANNED_COUNTER.inc();
+                    }
+                    ModeCategory::Fingerprint => {
+                        SERVERS_FINGERPRINTED_COUNTER.inc();
+                    }
+                }
+            }
+
             // check if there's already a bulk update for this server
             let is_already_updating = bulk_updates.iter().any(|bulk_update| {
                 bulk_update.query.get_str("ip").ok()

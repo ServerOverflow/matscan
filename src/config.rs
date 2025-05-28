@@ -39,6 +39,11 @@ pub struct Config {
     #[serde(default)]
     pub ping_timeout_secs: Option<u64>,
 
+    /// IP address and port Prometheus exporter should listen on.
+    /// Null or no value implicitly disables Prometheus.
+    #[serde(default)]
+    pub prometheus_address: Option<String>,
+
     /// This is not the "target server" as you might assume.
     /// Here you can specify the address, port and protocol version
     /// to specify in the SLP request to the server.

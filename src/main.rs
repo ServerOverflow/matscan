@@ -24,18 +24,11 @@ use matscan::{
     },
     terminal_colors::*,
 };
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-enum ModeCategory {
-    Normal,
-    Rescan,
-    Fingerprint,
-}
+use matscan::modes::ModeCategory;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     println!("Starting matscan (ServerOverflow edition)");
-
     // first command line argument is the location of the config file
     let config_file = env::args().nth(1).unwrap_or("config.toml".to_string());
 
@@ -55,6 +48,11 @@ async fn main() -> anyhow::Result<()> {
 
     init_tracing(&config);
     info!("Logging initialized");
+
+    if let Some(ref address) = config.prometheus_address {
+        prometheus_exporter::start(address.parse()?)?;
+        info!("Prometheus listening on {address}");
+    }
 
     let minecraft_protocol = protocols::Minecraft::new(
         &config.target.addr,
@@ -117,6 +115,8 @@ async fn main() -> anyhow::Result<()> {
         results: 0,
 
         is_processing: false,
+        category: None,
+        mode: None
     }));
 
     let mut receiver = ScannerReceiver {
@@ -208,6 +208,9 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
+        shared_process_data.lock().mode = mode;
+        shared_process_data.lock().category = Option::from(mode_category);
+        
         let count_before_exclude = ranges.count();
         let exclude_ranges = exclude::parse(&database.get_exclusions().await.unwrap())?;
         println!(

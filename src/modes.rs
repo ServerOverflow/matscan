@@ -29,6 +29,14 @@ pub mod slash32_all_ports;
 pub mod slash32_all_ports_new;
 pub mod slash32_range_ports;
 pub mod slash32_range_ports_new;
+pub mod slash0_filtered_by_asn_custom;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ModeCategory {
+    Normal,
+    Rescan,
+    Fingerprint,
+}
 
 #[derive(
     Clone, Copy, Debug, Eq, PartialEq, Hash, enum_utils::FromStr, enum_utils::IterVariants,
@@ -36,6 +44,7 @@ pub mod slash32_range_ports_new;
 pub enum ScanMode {
     Slash0FewPorts,
     Slash0FilteredByAsn,
+    Slash0FilteredByAsnCustom,
     Slash0FilteredByAsnButLess,
     Slash0FilteredBySlash24,
     Slash0FilteredBySlash2430d,
@@ -172,6 +181,7 @@ impl ScanMode {
             ScanMode::Slash0FewPorts => slash0_few_ports::get_ranges(database).await,
             ScanMode::Slash0 => slash0::get_ranges(database).await,
             ScanMode::Slash0FilteredByAsn => slash0_filtered_by_asn::get_ranges(database).await,
+            ScanMode::Slash0FilteredByAsnCustom => slash0_filtered_by_asn_custom::get_ranges(database).await,
             ScanMode::Slash0FilteredByAsnButLess => {
                 slash0_filtered_by_asn_but_less::get_ranges(database).await
             }

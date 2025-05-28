@@ -19,6 +19,7 @@ matscan is heavily inspired by [masscan](https://github.com/robertdavidgraham/ma
 - Send to a Discord webhook when a player joins/leaves a server
 - Detection of duplicate servers that have the same server on every port
 - Protocol implementation fingerprinting (can identify vanilla, paper, fabric, forge, bungeecord, velocity, node-minecraft-protocol)
+- Prometheus statistics support
 - Historical player tracking
 - Offline-mode detection
 - Written in R*st 🚀🚀🚀
