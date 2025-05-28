@@ -77,7 +77,7 @@ where
                 continue;
             };
 
-            let mode = format!("{:?}", shared.lock().mode.unwrap());
+            let mode = format!("{:?}", shared.lock().mode.unwrap_or(ScanMode::Slash0));
             if let Some(category) = shared.lock().category {
                 match category {
                     ModeCategory::Normal => {
