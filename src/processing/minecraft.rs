@@ -233,6 +233,117 @@ impl ProcessableProtocol for protocols::Minecraft {
     }
 }
 
+fn decode_optimized(encoded: &str) -> Option<Vec<u8>> {
+    if encoded.len() < 2 {
+        return None;
+    }
+
+    let size0 = encoded.chars().nth(0)? as usize;
+    let size1 = encoded.chars().nth(1)? as usize;
+    let size = size0 | (size1 << 15);
+
+    let mut bytes = Vec::with_capacity(size);
+    let mut buffer = 0u32;
+    let mut bits_in_buf = 0;
+    let chars = encoded.chars().skip(2);
+
+    for c in chars {
+        while bits_in_buf >= 8 {
+            bytes.push((buffer & 0xFF) as u8);
+            buffer >>= 8;
+            bits_in_buf -= 8;
+        }
+
+        buffer |= ((c as u32) & 0x7FFF) << bits_in_buf;
+        bits_in_buf += 15;
+    }
+
+    while bytes.len() < size && bits_in_buf >= 8 {
+        bytes.push((buffer & 0xFF) as u8);
+        buffer >>= 8;
+        bits_in_buf -= 8;
+    }
+
+    Some(bytes)
+}
+
+fn read_varint(bytes: &mut &[u8]) -> Option<u32> {
+    let mut num = 0u32;
+    let mut shift = 0;
+    for _ in 0..5 {
+        let byte = *bytes.get(0)?;
+        *bytes = &bytes[1..];
+        num |= ((byte & 0x7F) as u32) << shift;
+        if byte & 0x80 == 0 {
+            return Some(num);
+        }
+        shift += 7;
+    }
+    None
+}
+
+fn read_utf(bytes: &mut &[u8]) -> Option<String> {
+    let len = read_varint(bytes)? as usize;
+    if bytes.len() < len {
+        return None;
+    }
+    let string = std::str::from_utf8(&bytes[..len]).ok()?.to_string();
+    *bytes = &bytes[len..];
+    Some(string)
+}
+
+fn read_bool(bytes: &mut &[u8]) -> Option<bool> {
+    let byte = *bytes.get(0)?;
+    *bytes = &bytes[1..];
+    Some(byte != 0)
+}
+
+fn read_u16(bytes: &mut &[u8]) -> Option<u16> {
+    if bytes.len() < 2 {
+        return None;
+    }
+    let val = u16::from_be_bytes([bytes[0], bytes[1]]);
+    *bytes = &bytes[2..];
+    Some(val)
+}
+
+fn extract_forge_mods(encoded: &str) -> Option<Vec<Bson>> {
+    let decoded_vec = decode_optimized(encoded)?;
+    let mut bytes = decoded_vec.as_slice();
+
+    let _truncated = read_bool(&mut bytes)?;
+    let mods_size = read_u16(&mut bytes)? as usize;
+
+    let mut mods = Vec::new();
+
+    for _ in 0..mods_size {
+        let channel_size_and_flag = read_varint(&mut bytes)?;
+        let channel_size = channel_size_and_flag >> 1;
+        let is_ignore_server_only = (channel_size_and_flag & 1) != 0;
+
+        let mod_id = read_utf(&mut bytes)?;
+        let mod_version = if is_ignore_server_only {
+            "IGNORESERVERONLY".to_string()
+        } else {
+            read_utf(&mut bytes)?
+        };
+
+        for _ in 0..channel_size {
+            let _channel_name = read_utf(&mut bytes)?;
+            let _channel_version = read_utf(&mut bytes)?;
+            let _required = read_bool(&mut bytes)?;
+            // we ignore channels for now
+        }
+
+        let mut mod_doc = Document::new();
+        mod_doc.insert("modId", Bson::String(mod_id));
+        mod_doc.insert("modmarker", Bson::String(mod_version));
+        mods.push(Bson::Document(mod_doc));
+    }
+
+    Some(mods)
+}
+
 /// Clean up the response data from the server into something we can insert into
 /// our database.
 fn clean_response_data(
@@ -260,6 +371,14 @@ fn clean_response_data(
     let legacy_forge = data.contains_key("modinfo");
     let new_forge = data.contains_key("forgeData");
     data.insert("isForge", legacy_forge || new_forge);
+
+    if let Some(forge_data) = data.get_mut("forgeData").and_then(Bson::as_document_mut) {
+        if let Some(d_val) = forge_data.get("d").and_then(Bson::as_str) {
+            if let Some(mods) = extract_forge_mods(d_val) {
+                forge_data.insert("mods", Bson::Array(mods));
+            }
+        }
+    }
 
     // This is going to be handled on the frontend for me to be able to update the list at any time
     /*let version_name = data
